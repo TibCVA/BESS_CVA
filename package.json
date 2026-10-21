@@ -1,0 +1,11 @@
+{
+  "name": "datako-evidence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Datako Evidence: a self-contained mock-up of an evidence scan tool for pharma analysts (iPad demo).",
+  "scripts": {
+    "build": "node build.js",
+    "start": "node server.js"
+  },
+  "engines": { "node": ">=18" }
+}
