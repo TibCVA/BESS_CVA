@@ -23,7 +23,13 @@ Panneaux : *How it works* (process du deck : sources licenciées → orchestrati
 validation humaine, PRISMA en direct, onglet *Why Datako*), *Export*, sélecteur de *Subject*
 (sujets sous surveillance, journal du relecteur, bouton *Reset demo*).
 
-Raccourci présentateur : ouvrir l'URL avec `#results` pour arriver directement sur les résultats.
+**Visite guidée (≈ 20 s)** : bouton *Tour · 20 s* en haut, ou *Watch the 20-second tour* sur l'accueil.
+Un voile grisé met en lumière chaque partie avec une phrase courte : protocole PICO, screening IA,
+score de pertinence, source verbatim, décision du relecteur et recalcul, traçabilité PRISMA, puis
+les avantages Datako (quatre engagements, comparaison, feuille de route). *Next* avance, *Exit tour*
+quitte ; la visite ne modifie pas les décisions enregistrées.
+
+Raccourcis présentateur : `#results` ouvre directement l'evidence base, `#tour` lance la visite.
 
 ## Ouvrir sur iPad
 
@@ -47,6 +53,7 @@ Raccourci présentateur : ouvrir l'URL avec `#results` pour arriver directement 
 | `build.js` | Assemble `index.html` à partir de `src/` et `assets/` |
 | `server.js`, `railway.json` | Serveur statique Node sans dépendance pour Railway (`/health`) |
 | `tools/shoot.js` | Test de parcours et captures iPad avec Playwright |
+| `tools/tour.js` | Joue la visite guidée et capture chaque étape |
 
 ## Commandes
 

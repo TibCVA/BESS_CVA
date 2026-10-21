@@ -59,6 +59,7 @@
       <span class="subject-k">Subject</span><span class="subject-v" id="subject-v"></span><svg class="ic ic-sm"><use href="#i-chevd"/></svg>
     </button>
     <div class="topbar-actions">
+      <button class="tb-btn tour-btn" data-tour><svg class="ic"><use href="#i-play"/></svg><span>Tour · 20 s</span></button>
       <button class="tb-btn" data-open="method"><svg class="ic"><use href="#i-layers"/></svg><span>How it works</span></button>
       <span class="secure" id="sync-pill" title="Licensed sources synced, zero data retention"><i></i><span>Pipelines live · last sync <b id="sync-time"></b></span></span>
       <span class="avatar" title="Medical reviewer">MR</span>
@@ -113,6 +114,17 @@
   <div class="panel-head"><div class="panel-title">Export<small>Everything leaves with its sources and the reviewer decisions attached.</small></div><button class="close" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
   <div class="panel-body" id="export-body"></div>
 </div></div>
+
+<div id="tour" aria-live="polite">
+  <div id="tour-block"></div>
+  <div id="tour-spot" class="none"></div>
+  <div id="tour-cap" role="dialog" aria-label="Guided tour">
+    <div class="tc-bar" id="tc-bar"></div>
+    <div class="tc-k"><span class="tc-n" id="tc-n"></span><span class="tc-t" id="tc-t"></span></div>
+    <p class="tc-p" id="tc-p"></p>
+    <div class="tc-ctl" id="tc-ctl"></div>
+  </div>
+</div>
 
 <div class="toast" id="toast"><svg class="ic"><use href="#i-check"/></svg><span id="toast-text"></span></div>
 

@@ -46,6 +46,7 @@
     })(t0);
   }
   function toast(msg, ms) {
+    if (document.body.classList.contains("touring")) return;
     const t = $("#toast"); $("#toast-text").textContent = msg; t.classList.add("on");
     clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("on"), ms || 2600);
   }
@@ -158,7 +159,8 @@
           <div>
             <div class="eyebrow">Continuous surveillance · PRISMA-compliant</div>
             <h1>Real-time evidence <em>for the subjects you monitor,</em> every number one tap from its source.</h1>
-            <p>Datako SLR runs your literature review as a surveillance loop: licensed databases, AI relevance scoring with a rationale, and medical reviewers who confirm every inclusion. Nothing enters the evidence base without a human decision.</p>
+            <p>Datako SLR runs your literature review as a surveillance loop: licensed databases, AI relevance scoring with a rationale, and medical reviewers who confirm every inclusion before anything leaves the tool.</p>
+            <button class="btn tour-cta" data-tour>${ic("play")}Watch the 20-second tour</button>
           </div>
           <div class="promise-steps">${steps.map((s, i) => `<div class="pstep"><b>${i + 1} · ${s[0]}</b><span>${s[1]}</span></div>`).join("")}</div>
         </div>
@@ -197,16 +199,18 @@
       </div>`;
       $("#skip").addEventListener("click", () => this.finish(true));
     },
-    at(sec, fn) { this.timers.push(setTimeout(fn, reduced ? 0 : sec * 1000)); },
-    start() {
+    speed: 1,
+    at(sec, fn) { this.timers.push(setTimeout(fn, reduced ? 0 : sec * 1000 * this.speed)); },
+    start(opts) {
+      this.speed = (opts && opts.speed) || 1;
       this.stop(); this.render(); router.show("run"); this.running = true; rail.resetSources();
       $("#run-btn").disabled = true; $("#run-label").textContent = "Scanning…";
       const T = DEMO.meta.runSeconds, t0 = performance.now();
-      const clock = () => { if (!this.running) return; $("#run-clock").textContent = Math.min(T, Math.floor((performance.now() - t0) / 1000)) + " s"; this.raf = requestAnimationFrame(clock); }; clock();
+      const clock = () => { if (!this.running) return; $("#run-clock").textContent = Math.min(T, Math.floor((performance.now() - t0) / 1000 / this.speed)) + " s"; this.raf = requestAnimationFrame(clock); }; clock();
       const stages = DEMO.funnel.stages;
       const setStage = i => $$("#funnel .fstage").forEach((el, j) => { el.classList.toggle("active", j === i); el.classList.toggle("done", j < i); });
       const fill = (i, p) => { const b = $(`#funnel .fstage[data-stage="${stages[i].id}"] .fs-bar i`); if (b) b.style.width = Math.round(p * 100) + "%"; };
-      const count = (i, v, ms) => { const el = $(`#funnel .fstage[data-stage="${stages[i].id}"] .fs-v`); el.classList.remove("wait"); tween(el, v, ms, nf); };
+      const count = (i, v, ms) => { const el = $(`#funnel .fstage[data-stage="${stages[i].id}"] .fs-v`); el.classList.remove("wait"); tween(el, v, ms * this.speed, nf); };
       setStage(0);
       DEMO.sources.forEach((s, k) => { this.at(0.2 + k * 0.42, () => rail.source(s.id, "query")); this.at(0.9 + k * 0.42, () => { rail.source(s.id, "done", s.found); fill(0, (k + 1) / DEMO.sources.length); count(0, k + 1, 200); }); });
       this.at(3.4, () => { setStage(1); count(1, stages[1].value, 1400); fill(1, 1); });
@@ -523,23 +527,57 @@
       </svg>`;
     },
     why() {
-      const Y = `<span class="y">${ic("check")}</span>`, P = `<span class="p">${ic("flag")}</span>`, N = `<span class="n">${ic("x")}</span>`;
+      const hb = (lv, us) => `<svg class="hb${us ? " us" : ""}" viewBox="0 0 20 20" aria-label="${["not provided", "partly", "provided"][lv]}"><circle class="o" cx="10" cy="10" r="8.2"/>${lv === 2 ? '<circle class="f" cx="10" cy="10" r="8.2"/>' : lv === 1 ? '<path class="f" d="M10 1.8 A8.2 8.2 0 0 1 10 18.2 Z"/>' : ""}</svg>`;
+      const cols = ["Manual SLR", "General AI chat", "AI search tools", "Database alone"];
       const rows = [
-        ["Protocol locked before the search", "PICO, inclusion and exclusion criteria", Y, N, P, Y, Y],
-        ["Licensed databases, continuously", "EMBASE, MEDLINE, COCHRANE, CINAHL, Scopus", P, N, N, Y, Y],
-        ["PRISMA flow with a reason per exclusion", "auditable, exportable", Y, N, N, N, Y],
-        ["Relevance score with a rationale per record", "", N, N, P, N, Y],
-        ["Verbatim quote attached to every figure", "sentence, unit, interval", P, N, P, N, Y],
-        ["Like-for-like synthesis with confidence", "a fixed, printed rule", P, N, N, N, Y],
-        ["Reviewer decisions that recompute and are logged", "", Y, N, N, N, Y],
-        ["New evidence detected without a new search", "", N, N, P, P, Y],
-        ["Time to a defensible first answer", "", "<b>Weeks</b>", "<b>Minutes</b>", "<b>Minutes</b>", "<b>Hours</b>", "<b>Minutes</b>"]
+        ["Protocol locked before the search", "PICO, inclusion and exclusion criteria", [2, 0, 1, 2, 2]],
+        ["Licensed databases, continuously", "EMBASE, MEDLINE, COCHRANE, CINAHL, Scopus", [1, 0, 0, 2, 2]],
+        ["Relevance score with a rationale", "for every record", [0, 0, 1, 0, 2]],
+        ["Verbatim quote behind every figure", "sentence, unit, interval", [1, 0, 1, 0, 2]],
+        ["PRISMA flow, every exclusion explained", "auditable and exportable", [2, 0, 0, 0, 2]],
+        ["Expert decides, evidence recomputes", "every decision logged", [1, 0, 0, 0, 2]],
+        ["New evidence without a new search", "scheduled surveillance", [0, 0, 1, 1, 2]],
+        ["Time to a defensible first answer", "", ["Weeks", "Minutes¹", "Minutes", "Hours", "Minutes"]]
       ];
-      return `
-        <table class="cmp"><thead><tr><th>What a defensible evidence base needs</th><th>Manual SLR</th><th>General AI chat</th><th>AI search tools</th><th>Database alone</th><th class="us">Datako SLR</th></tr></thead>
-        <tbody>${rows.map(r => `<tr><td>${r[0]}${r[1] ? `<small>${r[1]}</small>` : ""}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td class="us">${r[6]}</td></tr>`).join("")}</tbody></table>
-        <div class="cmp-note"><span>${Y} provided</span><span>${P} partly, or depends on the user</span><span>${N} not provided</span><span class="muted">General AI chat: assistants with web browsing. AI search tools: literature search assistants. Database alone: EMBASE, PubMed, Scopus used directly.</span></div>
-        <div class="banner dark"><div class="eyebrow" style="color:var(--blue)">Datako's conviction</div><p>True transformation goes beyond automating database searches: a scalable, AI-driven surveillance engine that removes the operational burden while medical experts keep absolute rigour and accountability.</p></div>`;
+      const pillars = [
+        ["c1", "Maintain real-time awareness", "Detect newly published evidence on a schedule, instead of a review every year or two.", "Weekly scan · next on " + DEMO.meta.nextScan],
+        ["c2", "Automate evidence processing", "Prioritise records, explain their relevance and prepare the reviewer's decision.", "AI score and rationale on every record"],
+        ["c3", "Standardise operations at scale", "One traceable workflow instead of inconsistent high-volume manual screening.", "PRISMA flow with live counts"],
+        ["c4", "Guarantee expert validation", "Medical reviewers stay accountable: every recommendation is validated and audited.", "Include · Flag · Exclude, logged"]
+      ];
+      return `<div class="why">
+        <div class="why-hero">
+          <div><div class="eyebrow-k">Why Datako</div><h3>The systematic part of a systematic review, in minutes. <em>The judgement stays with your experts.</em></h3></div>
+          <div class="why-proof">
+            <div><b>22 s</b><span>to screen 3,412 records in this demo</span></div>
+            <div><b>100%</b><span>of figures carry their verbatim quote</span></div>
+            <div><b>1 tap</b><span>from any number to its source</span></div>
+          </div>
+        </div>
+        <div class="pillars">${pillars.map((p, i) => `<div class="pillar ${p[0]}"><span class="pn">${i + 1}</span><b>${p[1]}</b><span>${p[2]}</span><em>${ic("check", "ic-sm")}${esc(p[3])}</em></div>`).join("")}</div>
+        <div class="card vs">
+          <div class="vs-title"><span class="card-title">Datako SLR against the alternatives</span><span class="vs-legend">${hb(2)}provided ${hb(1)}partly ${hb(0)}not provided</span></div>
+          <div class="vs-grid">
+            <div class="vs-layer" aria-hidden="true"><i></i></div>
+            <div class="vs-h k"></div>${cols.map(c => `<div class="vs-h">${c}</div>`).join("")}<div class="vs-h us"><span class="vs-mark"></span>Datako SLR</div>
+            ${rows.map(r => `<div class="vs-k">${r[0]}${r[1] ? `<small>${r[1]}</small>` : ""}</div>${r[2].map((v, j) => `<div class="vs-c${j === 4 ? " us" : ""}">${typeof v === "number" ? hb(v, j === 4) : `<b>${v}</b>`}</div>`).join("")}`).join("")}
+          </div>
+          <p class="vs-note">¹ Fast, but no locked protocol, no PRISMA flow and no verbatim source behind each number. General AI chat: assistants with web browsing. AI search tools: literature search assistants. Database alone: EMBASE, PubMed or Scopus used directly.</p>
+        </div>
+        <div class="card card-pad road">
+          <div class="card-head"><span class="card-title">From pilot to continuous surveillance, in about 12 weeks</span><span class="small muted">low-risk start, Go / No-Go at week 3–4</span></div>
+          <div class="road-bar">
+            <div class="ph p1" style="flex:3.6"><b>1 · Proof of concept</b><span>3–4 weeks, benchmarked on a historical SLR</span></div>
+            <div class="gate"><i></i><span>Go / No-Go</span></div>
+            <div class="ph p2" style="flex:8"><b>2 · Data structuring & LLM deployment</b><span>8–10 weeks · pipelines, tailored model, human-in-the-loop</span></div>
+            <div class="ph p3" style="flex:4.4"><b>3 · Scaling</b><span>other subjects and therapeutic areas</span></div>
+          </div>
+        </div>
+        <div class="convict">
+          <div><div class="eyebrow-k light">Datako's conviction</div><p>True transformation goes beyond automating database searches: a scalable, AI-driven surveillance engine that removes the operational burden while medical experts keep absolute rigour and accountability.</p></div>
+          <div class="oss"><span class="oss-k">One-stop shop</span>${[["db", "Technology", "Pipelines, GenAI, API integration"], ["scale", "Strategic advisory", "Pharma-focused framing and KPIs"], ["hand", "Training", "Reviewer upskilling and adoption"]].map(o => `<div class="oss-i">${ic(o[0])}<span><b>${o[1]}</b><small>${o[2]}</small></span></div>`).join("")}</div>
+        </div>
+      </div>`;
     },
     export() {
       const st = DEMO.funnel.stages, n = Object.keys(store.decisions).length;
@@ -587,6 +625,112 @@
     }
   };
 
+  /* ---------------- guided tour (≈ 20 s, auto-advancing) ---------------- */
+  const tour = {
+    on: false, token: 0, skip: false, snap: null, last: null,
+    sleep(ms) {
+      const tk = this.token;
+      return new Promise(res => {
+        let left = ms, prev = performance.now();
+        const tick = t => {
+          if (tk !== this.token) return res(false);
+          if (this.skip) { this.skip = false; return res(true); }
+          left -= t - prev; prev = t;
+          if (left <= 0) return res(true);
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+    },
+    pause(ms) { return new Promise(r => setTimeout(r, reduced ? 0 : ms)); },
+    rect(sel) {
+      const els = (Array.isArray(sel) ? sel : [sel]).flatMap(x => typeof x === "string" ? $$(x) : [x]).filter(e => e && e.getBoundingClientRect().width);
+      if (!els.length) return null;
+      const rs = els.map(e => e.getBoundingClientRect());
+      return { l: Math.min(...rs.map(r => r.left)), t: Math.min(...rs.map(r => r.top)), r: Math.max(...rs.map(r => r.right)), b: Math.max(...rs.map(r => r.bottom)) };
+    },
+    spot(sel, pad) {
+      this.last = [sel, pad];
+      const s = $("#tour-spot"), vw = innerWidth, vh = innerHeight, r = sel ? this.rect(sel) : null;
+      if (!r) { s.classList.add("none"); Object.assign(s.style, { left: vw / 2 + "px", top: vh / 2 + "px", width: "0px", height: "0px" }); this.place(null); return; }
+      s.classList.remove("none"); pad = pad == null ? 10 : pad;
+      const l = Math.max(6, r.l - pad), t = Math.max(6, r.t - pad), w = Math.min(vw - 6, r.r + pad) - l, h = Math.min(vh - 6, r.b + pad) - t;
+      Object.assign(s.style, { left: l + "px", top: t + "px", width: w + "px", height: h + "px" });
+      this.place({ t, h });
+    },
+    place(r) {
+      const c = $("#tour-cap"), vh = innerHeight, ch = c.offsetHeight || 140, gap = 14;
+      let top;
+      if (!r) top = (vh - ch) / 2;
+      else if (vh - (r.t + r.h) >= ch + gap + 10) top = r.t + r.h + gap;
+      else if (r.t >= ch + gap + 6) top = r.t - ch - gap;
+      else top = vh - ch - 20;
+      c.style.top = Math.max(10, top) + "px";
+    },
+    caption(i) {
+      const st = this.steps[i], n = this.steps.length;
+      $("#tc-bar").innerHTML = this.steps.map((x, j) => `<i class="${j < i ? "done" : j === i ? "cur" : ""}" style="--d:${x.ms || 0}ms"><b></b></i>`).join("");
+      $("#tc-n").textContent = `${i + 1} / ${n}`; $("#tc-t").textContent = st.k;
+      const p = $("#tc-p"); p.textContent = st.t; p.classList.remove("in"); void p.offsetWidth; p.classList.add("in");
+      $("#tc-ctl").innerHTML = st.final
+        ? `<button class="tc-b ghost" data-tc="replay">${ic("reset", "ic-sm")}Replay</button><button class="tc-b main" data-tc="end">Explore the demo ${ic("arrow", "ic-sm")}</button>`
+        : `<button class="tc-b ghost" data-tc="end">Exit tour</button><button class="tc-b" data-tc="next">Next ${ic("chev", "ic-sm")}</button>`;
+      $("#tour").classList.toggle("free", !!st.final);
+    },
+    async start() {
+      this.stop(false);
+      this.on = true; this.token++; const tk = this.token;
+      this.snap = { d: JSON.parse(JSON.stringify(store.decisions)), l: store.log.slice() };
+      store.decisions = {}; store.log = []; store.filter = "all"; store.showExcluded = false;
+      document.body.classList.add("touring"); run.stop(); overlay.closeAll();
+      $("#run-btn").disabled = false; $("#run-label").textContent = store.ran ? "Scan again" : "Run surveillance scan";
+      router.show("idle"); $("#rail-body").scrollTop = 0; $("#view-idle").scrollTop = 0;
+      $("#tour").classList.add("on");
+      const ensureResults = () => { if (store.screen !== "results") run.finish(false); };
+      const center = async el => { if (el) { el.scrollIntoView({ block: "center", behavior: "auto" }); await this.pause(260); } };
+      const body = () => $("#method-body");
+      const scrollPanel = async el => { const pb = body(); if (!pb || !el) return; pb.scrollTo({ top: Math.max(0, el.offsetTop - 18), behavior: reduced ? "auto" : "smooth" }); await this.pause(520); };
+      this.steps = [
+        { k: "Protocol", t: "Lock the question as a PICO protocol. Five licensed databases are queried for you.", ms: 2300, go: async () => ".rail",
+          mid: async () => { if (await this.sleep(1000)) { const rb = $("#rail-body"), src = $("#srcs"); if (rb && src) rb.scrollTo({ top: src.offsetTop - 140, behavior: reduced ? "auto" : "smooth" }); } } },
+        { k: "AI screening", t: "Thousands of records cleaned, deduplicated and scored by AI, live.", ms: 3700, go: async () => { run.start({ speed: 0.16 }); await this.pause(80); return ["#funnel", "#view-run .feed"]; } },
+        { k: "AI relevance", t: "Every record ranked by an AI relevance score, with its rationale.", ms: 2200, go: async () => { ensureResults(); await this.pause(420); const head = $("#matrix .mx-head"); const v = $("#view-results"); if (head && v) { v.scrollTop += head.getBoundingClientRect().top - 74; await this.pause(160); } return ["#matrix .mx-head", ...$$("#matrix tbody tr").slice(0, 3)]; } },
+        { k: "Source", t: "Every figure is one tap from its verbatim source.", ms: 2400, go: async () => { card.open("e44", $('.fig[data-ex="e44"]')); await this.pause(760); return "#sheet .excerpt"; } },
+        { k: "Reviewer decision", t: "The medical reviewer decides. Exclude a record, and the evidence is recomputed.", ms: 2400, go: async () => "#sheet-foot",
+          mid: async () => { if (await this.sleep(1000)) card.decide("excluded"); } },
+        { k: "Evidence base", t: "One answer per outcome, updated on the spot: mortality now rests on 6 figures.", ms: 2300, go: async () => { overlay.closeAll(); await this.pause(420); await center($("#strip-mortality")); return "#strip-mortality"; } },
+        { k: "Traceability", t: "Licensed sources, GenAI orchestration, human validation: PRISMA-compliant end to end.", ms: 2300, go: async () => { panels.tab = "how"; panels.open("method"); await this.pause(380); return "#panel-method .process"; } },
+        { k: "Why Datako", t: "Built on four promises: real-time awareness, automated processing, scale, expert validation.", ms: 2500, go: async () => { panels.tab = "why"; panels.method(); body().scrollTop = 0; await this.pause(260); await scrollPanel($(".why-proof")); return ".pillars"; } },
+        { k: "Against the alternatives", t: "The only option with a locked protocol, licensed sources and a quote behind every figure.", ms: 2600, go: async () => { await scrollPanel($(".vs")); return ".vs"; } },
+        { k: "Next step", t: "From pilot to continuous surveillance in about 12 weeks, with a Go / No-Go at week 3.", final: true, go: async () => { const pb = body(); pb.scrollTo({ top: pb.scrollHeight, behavior: reduced ? "auto" : "smooth" }); await this.pause(560); return null; } }
+      ];
+      for (let i = 0; i < this.steps.length; i++) {
+        if (tk !== this.token) return;
+        const st = this.steps[i];
+        const target = await st.go();
+        if (tk !== this.token) return;
+        this.caption(i);
+        if (st.final) { $("#tour-spot").classList.add("none"); const c = $("#tour-cap"); c.style.top = (innerHeight - c.offsetHeight - 22) + "px"; return; }
+        this.spot(target, st.pad);
+        const wait = this.sleep(st.ms);
+        if (st.mid) st.mid();
+        if (!(await wait)) return;
+      }
+    },
+    stop(closeView) {
+      const was = this.on;
+      this.token++; this.on = false; this.skip = false;
+      document.body.classList.remove("touring"); $("#tour").classList.remove("on", "free");
+      if (this.snap) { store.decisions = this.snap.d; store.log = this.snap.l; store.save(); this.snap = null; }
+      if (was && closeView) {
+        overlay.closeAll(); run.stop();
+        if (!store.ran) { store.ran = true; DEMO.sources.forEach(s => rail.source(s.id, "done", s.found)); }
+        $("#run-btn").disabled = false; $("#run-label").textContent = "Scan again";
+        results.render(); router.show("results"); $("#view-results").scrollTop = 0;
+      } else if (was) document.dispatchEvent(new CustomEvent("decision", { detail: {} }));
+    }
+  };
+
   /* ---------------- boot ---------------- */
   function boot() {
     const hash = location.hash;
@@ -599,7 +743,7 @@
       if (e.target.closest("[data-close]")) overlay.closeAll();
     });
     $("#scrim").addEventListener("click", () => overlay.closeAll());
-    document.addEventListener("keydown", e => { if (e.key === "Escape") overlay.closeAll(); });
+    document.addEventListener("keydown", e => { if (e.key !== "Escape") return; if (tour.on) tour.stop(true); else overlay.closeAll(); });
     $("#sheet-body").addEventListener("scroll", () => thread.clear(), { passive: true });
     $$(".view").forEach(v => v.addEventListener("scroll", () => { if (document.body.dataset.overlay === "sheet") thread.clear(); }, { passive: true }));
     window.addEventListener("resize", () => thread.clear());
@@ -607,8 +751,17 @@
     document.addEventListener("decision", () => { if (store.screen === "results") { results.updateStrips(); results.updateMatrix(); results.renderSub(); } });
     if (hash === "#results") { store.ran = true; DEMO.sources.forEach(s => rail.source(s.id, "done", s.found)); $("#run-label").textContent = "Scan again"; results.render(); router.show("results"); }
     else if (hash === "#run") run.start();
+    else if (hash === "#tour") setTimeout(() => tour.start(), 500);
+    document.addEventListener("click", e => {
+      if (e.target.closest("[data-tour]")) { tour.start(); return; }
+      const b = e.target.closest("[data-tc]"); if (!b) return;
+      if (b.dataset.tc === "next") tour.skip = true;
+      else if (b.dataset.tc === "replay") tour.start();
+      else tour.stop(true);
+    });
+    window.addEventListener("resize", () => { if (tour.on && tour.last) tour.spot(tour.last[0], tour.last[1]); });
     let last = 0; document.addEventListener("touchend", e => { const t = Date.now(); if (t - last < 300 && !e.target.closest("input, textarea")) e.preventDefault(); last = t; }, { passive: false });
-    window.SLR = { store, synth, results, card, run, DEMO, SCORE };
+    window.SLR = { store, synth, results, card, run, tour, DEMO, SCORE };
   }
   document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", boot) : boot();
 })();
